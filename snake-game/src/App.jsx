@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "./firebase/config";
+import {
+  doc,
+  getDoc,
+  setDoc,
+} from "firebase/firestore";
+import { auth, db } from "./firebase/config";
+
 import "./App.css";
 import Register from "./register";
 import Login from "./login";
@@ -26,12 +32,13 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authScreen, setAuthScreen] = useState("login");
 
-
+  const [gameStarted, setGameStarted] = useState(false);
   const [direction, setDirection] = useState({ x: 1, y: 0 });
 
   const [food, setFood] = useState(getRandomFood());
 
   const [score, setScore] = useState(0);
+  const [bestScore, setBestScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
 
   const foodRef = useRef(food);
@@ -51,6 +58,15 @@ function App() {
   useEffect(() => {
     foodRef.current = food;
   }, [food]);
+
+const changeDirection = (newDirection) => {
+  if (newDirection.x === -direction.x &&
+      newDirection.y === -direction.y) {
+    return;
+  }
+
+  setDirection(newDirection);
+};
 
   // Keyboard controls
   useEffect(() => {
@@ -81,7 +97,7 @@ function App() {
 
   // Game loop
   useEffect(() => {
-    if (gameOver) return;
+    if (gameOver || !gameStarted) return;
 
     const gameLoop = setInterval(() => {
       setSnake((currentSnake) => {
@@ -129,7 +145,7 @@ function App() {
     }, 150);
 
     return () => clearInterval(gameLoop);
-  }, [direction, gameOver]);
+  }, [direction, gameOver, gameStarted]);
 
   // Detect when snake grows
   useEffect(() => {
@@ -157,11 +173,56 @@ function App() {
 
   setScore(0);
   setGameOver(false);
+  setGameStarted(true);
 
   previousSnakeLength.current = 3;
 };
 
+useEffect(() => {
+  if (!user) return;
 
+  const loadBestScore = async () => {
+    try {
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        setBestScore(userSnap.data().bestScore || 0);
+      }
+    } catch (error) {
+      console.error("Error loading high score:", error);
+    }
+  };
+
+  loadBestScore();
+}, [user]);
+
+
+useEffect(() => {
+  if (!gameOver || !user) return;
+
+  if (score > bestScore) {
+    const saveBestScore = async () => {
+      try {
+        const userRef = doc(db, "users", user.uid);
+
+        await setDoc(
+          userRef,
+          {
+            bestScore: score,
+          },
+          { merge: true }
+        );
+
+        setBestScore(score);
+      } catch (error) {
+        console.error("Error saving high score:", error);
+      }
+    };
+
+    saveBestScore();
+  }
+}, [gameOver, score, bestScore, user]);
 
 
 if (authLoading) {
@@ -193,9 +254,7 @@ if (!user) {
   return (
     <div className="game-container">
       <h1>🐍 Snake Game</h1>
-
       <h2>Score: {score}</h2>
-
       <div className="game-board">
         {snake.map((part, index) => (
           <div
@@ -217,23 +276,52 @@ if (!user) {
             top: `${food.y * 20}px`,
           }}
         />
+  
+
       </div>
 
-      {gameOver && (
-        <div className="game-over">
-          <h2>💀 Game Over</h2>
+      {(!gameStarted || gameOver) && (
+  <div className="game-over">
+    {gameOver && (
+      <>
+        <h2>💀 Game Over</h2>
+        <p>Final Score: {score}</p>
+      </>
+    )}
 
-          <p>Final Score: {score}</p>
+    <div className="score-container">
+    <h2>Score: {score}</h2>
+    <h2>🏆 Best: {bestScore}</h2>
+    </div>
 
-          <button onClick={restartGame}>
-             Restart
-          </button>
-        </div>
-      )}
+    <button onClick={restartGame}>
+      {gameOver ? "🔄 Restart" : "▶ Start Game"}
+    </button>
+  </div>
+)}
+          <div className="mobile-controls">
+  <button  onTouchStart={(e) => { e.preventDefault(); changeDirection({ x: 0, y: -1 })}}>
+    ▲
+  </button>
 
-      <p>Use the arrow keys to move</p>
+  <div className="horizontal-controls"
+  onTouchMove={(e) => e.preventDefault()}>
+    <button onTouchStart={(e) => { e.preventDefault(); changeDirection({ x: -1, y: 0 })}}>
+      ◀
+    </button>
 
-      <h3>Made by Omkar Upadhyay</h3>
+    <button onTouchStart={(e) => { e.preventDefault(); changeDirection({ x: 0, y: 1 })}}>
+      ▼
+    </button>
+
+    <button onTouchStart={(e) => { e.preventDefault(); changeDirection({ x: 1, y: 0 })}}>
+      ▶
+    </button>
+  </div>
+</div>
+
+<p>Use the arrow keys or buttons to move</p>
+    
       <button
   onClick={() => signOut(auth)}
   className="logout-button"

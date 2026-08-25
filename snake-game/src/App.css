@@ -30,8 +30,8 @@
 }
 
 .snake-part {
-   width: 20px;
-  height: 20px;
+   width: 19px;
+  height: 19px;
   background: #4ade80;
   position: absolute;
   border-radius: 0px;
@@ -215,4 +215,41 @@
 
 .github-button:hover {
   background: #374151;
+}
+
+.mobile-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: none;
+}
+
+.horizontal-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.mobile-controls button {
+  width: 55px;
+  height: 55px;
+  border: none;
+  border-radius: 12px;
+  background: #334155;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mobile-controls button:active {
+  transform: scale(0.92);
+  background: #475569;
 }
