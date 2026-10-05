@@ -30,3 +30,5 @@ Login → Click **Start Game** → Eat the food → Avoid the walls and yourself
 **Omkar Upadhyay**
 
 Built as a learning project to practice React, Firebase, GitHub, and Vercel.
+
+More updates to be added eventually
